@@ -28,5 +28,7 @@ add_executable(push_stream
         main.cpp)
 
 target_link_libraries(push_stream stdc++ pthread avcodec avutil swscale avformat avcodec avformat avdevice avutil swresample avfilter swscale)
+set(CPACK_PROJECT_NAME ${PROJECT_NAME})
+set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 # install(TARGETS push_stream)

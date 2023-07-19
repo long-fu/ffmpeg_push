@@ -9,6 +9,11 @@ RtmpStream::RtmpStream()
 
 int RtmpStream::InitStream(double width, double height, int fps, int bitrate, string codec_profile, string server)
 {
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58, 9, 100)
+    av_register_all();
+#endif
+    avformat_network_init();
+
     const char *output = server.c_str();
 
     // initialize_avformat_context(g_ofmt_ctx, "flv");
@@ -153,7 +158,7 @@ void RtmpStream::WriteFrame(const uint8_t *src, int width, int height)
     }
 
     g_push_frame->pts += av_rescale_q(1, g_out_codec_ctx->time_base, g_out_stream->time_base);
-    
+
     AVPacket pkt = {0};
     av_new_packet(&pkt, 0);
 

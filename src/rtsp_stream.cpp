@@ -1,7 +1,8 @@
 #include "rtsp_stream.h"
 
 using namespace std;
-namespace {
+namespace
+{
     const string g_avFormat = "rtsp";
     const uint32_t g_bitRate = 900000;
     const uint32_t g_gopSize = 12;
@@ -15,17 +16,18 @@ RtspStream::RtspStream()
     this->g_codec = NULL;
     this->g_codecCtx = NULL;
     this->g_fmtCtx = NULL;
-    this->g_pkt  = NULL;
+    this->g_pkt = NULL;
     this->g_imgCtx = NULL;
     this->g_yuvSize = 0;
-	this->g_rgbSize = 0;
+    this->g_rgbSize = 0;
 }
 
 RtspStream::~RtspStream()
 {
     av_packet_free(&g_pkt);
     avcodec_close(g_codecCtx);
-    if (g_fmtCtx) {
+    if (g_fmtCtx)
+    {
         avio_close(g_fmtCtx->pb);
         avformat_free_context(g_fmtCtx);
     }
@@ -37,7 +39,9 @@ int RtspStream::AvInit(int picWidth, int picHeight, std::string g_outFile)
     av_register_all();
 #endif
     avformat_network_init();
-    if (avformat_alloc_output_context2(&g_fmtCtx, NULL, g_avFormat.c_str(), g_outFile.c_str()) < 0) {
+
+    if (avformat_alloc_output_context2(&g_fmtCtx, NULL, g_avFormat.c_str(), g_outFile.c_str()) < 0)
+    {
         ERROR_LOG("Cannot alloc output file context");
         return -1;
     }
@@ -46,26 +50,29 @@ int RtspStream::AvInit(int picWidth, int picHeight, std::string g_outFile)
     av_opt_set(g_fmtCtx->priv_data, "preset", "superfast", 0);
 
     g_codec = avcodec_find_encoder(AV_CODEC_ID_H264);
-    if (g_codec == NULL) {
+    if (g_codec == NULL)
+    {
         ERROR_LOG("Cannot find any endcoder");
         return -1;
     }
 
     g_codecCtx = avcodec_alloc_context3(g_codec);
-    if (g_codecCtx == NULL) {
+    if (g_codecCtx == NULL)
+    {
         ERROR_LOG("Cannot alloc context");
         return -1;
     }
-    
+
     g_avStream = avformat_new_stream(g_fmtCtx, g_codec);
-    if (g_avStream == NULL) {
+    if (g_avStream == NULL)
+    {
         ERROR_LOG("failed create new video stream");
         return -1;
     }
 
     g_avStream->time_base = AVRational{1, g_frameRate};
 
-    AVCodecParameters* param = g_fmtCtx->streams[g_avStream->index]->codecpar;
+    AVCodecParameters *param = g_fmtCtx->streams[g_avStream->index]->codecpar;
     param->codec_type = AVMEDIA_TYPE_VIDEO;
     param->width = picWidth;
     param->height = picHeight;
@@ -78,7 +85,8 @@ int RtspStream::AvInit(int picWidth, int picHeight, std::string g_outFile)
     g_codecCtx->gop_size = g_gopSize;
     g_codecCtx->max_b_frames = 0;
 
-    if (g_codecCtx->codec_id == AV_CODEC_ID_H264) {
+    if (g_codecCtx->codec_id == AV_CODEC_ID_H264)
+    {
         g_codecCtx->qmin = 10;
         g_codecCtx->qmax = 51;
         g_codecCtx->qcompress = (float)0.6;
@@ -87,7 +95,8 @@ int RtspStream::AvInit(int picWidth, int picHeight, std::string g_outFile)
     if (g_codecCtx->codec_id == AV_CODEC_ID_MPEG1VIDEO)
         g_codecCtx->mb_decision = 2;
 
-    if (avcodec_open2(g_codecCtx, g_codec, NULL) < 0) {
+    if (avcodec_open2(g_codecCtx, g_codec, NULL) < 0)
+    {
         ERROR_LOG("Open encoder failed");
         return -1;
     }
@@ -96,7 +105,8 @@ int RtspStream::AvInit(int picWidth, int picHeight, std::string g_outFile)
     av_dump_format(g_fmtCtx, 0, g_outFile.c_str(), 1);
 
     int ret = avformat_write_header(g_fmtCtx, NULL);
-    if (ret != AVSTREAM_INIT_IN_WRITE_HEADER) {
+    if (ret != AVSTREAM_INIT_IN_WRITE_HEADER)
+    {
         ERROR_LOG("Write file header fail");
         return -1;
     }
@@ -109,24 +119,28 @@ int RtspStream::FlushEncoder()
 {
     int ret;
     int vStreamIndex = g_avStream->index;
-    AVPacket* pkt = av_packet_alloc();
+    AVPacket *pkt = av_packet_alloc();
     pkt->data = NULL;
     pkt->size = 0;
 
-    if (!(g_codecCtx->codec->capabilities & AV_CODEC_CAP_DELAY)) {
+    if (!(g_codecCtx->codec->capabilities & AV_CODEC_CAP_DELAY))
+    {
         av_packet_free(&pkt);
         return -1;
     }
 
     // ACLLITE_LOG_INFO("Flushing stream %d encoder", vStreamIndex);
 
-    if ((ret = avcodec_send_frame(g_codecCtx, 0)) >= 0) {
-        while (avcodec_receive_packet(g_codecCtx, pkt) >= 0) {
+    if ((ret = avcodec_send_frame(g_codecCtx, 0)) >= 0)
+    {
+        while (avcodec_receive_packet(g_codecCtx, pkt) >= 0)
+        {
             pkt->stream_index = vStreamIndex;
             av_packet_rescale_ts(pkt, g_codecCtx->time_base,
-                g_fmtCtx->streams[vStreamIndex]->time_base);
+                                 g_fmtCtx->streams[vStreamIndex]->time_base);
             ret = av_interleaved_write_frame(g_fmtCtx, pkt);
-            if (ret < 0) {
+            if (ret < 0)
+            {
                 ERROR_LOG("error is: %d", ret);
                 break;
             }
@@ -135,7 +149,8 @@ int RtspStream::FlushEncoder()
     av_packet_free(&pkt);
     av_write_trailer(g_fmtCtx);
 
-    if (this->g_bgrToRtspFlag == true) {
+    if (this->g_bgrToRtspFlag == true)
+    {
         av_free(g_brgBuf);
         av_free(g_yuvBuf);
         sws_freeContext(g_imgCtx);
@@ -144,7 +159,8 @@ int RtspStream::FlushEncoder()
         if (g_yuvFrame)
             av_frame_free(&g_yuvFrame);
     }
-    if (this->g_yuvToRtspFlag == true) {
+    if (this->g_yuvToRtspFlag == true)
+    {
         av_free(g_yuvBuf);
         if (g_yuvFrame)
             av_frame_free(&g_yuvFrame);
@@ -154,19 +170,20 @@ int RtspStream::FlushEncoder()
 
 void RtspStream::YuvDataInit()
 {
-    if (this->g_yuvToRtspFlag == false) {
+    if (this->g_yuvToRtspFlag == false)
+    {
         g_yuvFrame = av_frame_alloc();
         g_yuvFrame->width = g_codecCtx->width;
         g_yuvFrame->height = g_codecCtx->height;
         g_yuvFrame->format = g_codecCtx->pix_fmt;
 
         g_yuvSize = av_image_get_buffer_size(g_codecCtx->pix_fmt, g_codecCtx->width, g_codecCtx->height, 1);
-        
-        g_yuvBuf = (uint8_t*)av_malloc(g_yuvSize);
+
+        g_yuvBuf = (uint8_t *)av_malloc(g_yuvSize);
 
         int ret = av_image_fill_arrays(g_yuvFrame->data, g_yuvFrame->linesize,
-        g_yuvBuf, g_codecCtx->pix_fmt,
-        g_codecCtx->width, g_codecCtx->height, 1);
+                                       g_yuvBuf, g_codecCtx->pix_fmt,
+                                       g_codecCtx->width, g_codecCtx->height, 1);
         this->g_yuvToRtspFlag = true;
     }
 }
@@ -175,23 +192,27 @@ int RtspStream::YuvDataToRtsp(void *dataBuf, uint32_t size, uint32_t seq)
 {
     memcpy(g_yuvBuf, dataBuf, size);
     g_yuvFrame->pts = seq;
-    if (avcodec_send_frame(g_codecCtx, g_yuvFrame) >= 0) {
-        while (avcodec_receive_packet(g_codecCtx, g_pkt) >= 0) {
+    if (avcodec_send_frame(g_codecCtx, g_yuvFrame) >= 0)
+    {
+        while (avcodec_receive_packet(g_codecCtx, g_pkt) >= 0)
+        {
             g_pkt->stream_index = g_avStream->index;
             av_packet_rescale_ts(g_pkt, g_codecCtx->time_base, g_avStream->time_base);
             g_pkt->pos = -1;
             int ret = av_interleaved_write_frame(g_fmtCtx, g_pkt);
-            if (ret < 0) {
+            if (ret < 0)
+            {
                 ERROR_LOG("error is: %d", ret);
             }
         }
     }
-	return 0;
+    return 0;
 }
 
 void RtspStream::BgrDataInint()
 {
-    if (this->g_bgrToRtspFlag == false) {
+    if (this->g_bgrToRtspFlag == false)
+    {
         g_rgbFrame = av_frame_alloc();
         g_yuvFrame = av_frame_alloc();
         g_rgbFrame->width = g_codecCtx->width;
@@ -204,16 +225,16 @@ void RtspStream::BgrDataInint()
         g_rgbSize = av_image_get_buffer_size(AV_PIX_FMT_BGR24, g_codecCtx->width, g_codecCtx->height, 1);
         g_yuvSize = av_image_get_buffer_size(g_codecCtx->pix_fmt, g_codecCtx->width, g_codecCtx->height, 1);
 
-        g_brgBuf = (uint8_t*)av_malloc(g_rgbSize);
-        g_yuvBuf = (uint8_t*)av_malloc(g_yuvSize);
+        g_brgBuf = (uint8_t *)av_malloc(g_rgbSize);
+        g_yuvBuf = (uint8_t *)av_malloc(g_yuvSize);
 
         int ret = av_image_fill_arrays(g_rgbFrame->data, g_rgbFrame->linesize,
-            g_brgBuf, AV_PIX_FMT_BGR24,
-            g_codecCtx->width, g_codecCtx->height, 1);
+                                       g_brgBuf, AV_PIX_FMT_BGR24,
+                                       g_codecCtx->width, g_codecCtx->height, 1);
 
         ret = av_image_fill_arrays(g_yuvFrame->data, g_yuvFrame->linesize,
-            g_yuvBuf, g_codecCtx->pix_fmt,
-            g_codecCtx->width, g_codecCtx->height, 1);
+                                   g_yuvBuf, g_codecCtx->pix_fmt,
+                                   g_codecCtx->width, g_codecCtx->height, 1);
         g_imgCtx = sws_getContext(
             g_codecCtx->width, g_codecCtx->height, AV_PIX_FMT_BGR24,
             g_codecCtx->width, g_codecCtx->height, g_codecCtx->pix_fmt,
@@ -224,29 +245,33 @@ void RtspStream::BgrDataInint()
 
 int RtspStream::BgrDataToRtsp(void *dataBuf, uint32_t size, uint32_t seq)
 {
-    if (g_rgbSize != size) {
+    if (g_rgbSize != size)
+    {
         ERROR_LOG("bgr data size error, The data size should be %d, but the actual size is %d", g_rgbSize, size);
         return -1;
     }
     memcpy(g_brgBuf, dataBuf, g_rgbSize);
     sws_scale(g_imgCtx,
-        g_rgbFrame->data,
-        g_rgbFrame->linesize,
-        0,
-        g_codecCtx->height,
-        g_yuvFrame->data,
-        g_yuvFrame->linesize);
+              g_rgbFrame->data,
+              g_rgbFrame->linesize,
+              0,
+              g_codecCtx->height,
+              g_yuvFrame->data,
+              g_yuvFrame->linesize);
     g_yuvFrame->pts = seq;
-    if (avcodec_send_frame(g_codecCtx, g_yuvFrame) >= 0) {
-        while (avcodec_receive_packet(g_codecCtx, g_pkt) >= 0) {
+    if (avcodec_send_frame(g_codecCtx, g_yuvFrame) >= 0)
+    {
+        while (avcodec_receive_packet(g_codecCtx, g_pkt) >= 0)
+        {
             g_pkt->stream_index = g_avStream->index;
             av_packet_rescale_ts(g_pkt, g_codecCtx->time_base, g_avStream->time_base);
             g_pkt->pos = -1;
             int ret = av_interleaved_write_frame(g_fmtCtx, g_pkt);
-            if (ret < 0) {
+            if (ret < 0)
+            {
                 ERROR_LOG("error is: %d", ret);
             }
         }
     }
-	return 0;
+    return 0;
 }
