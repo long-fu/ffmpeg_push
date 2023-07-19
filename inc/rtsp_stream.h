@@ -13,10 +13,10 @@ public:
 	void YuvDataInit();
 	
 	int YuvDataToRtsp(void *dataBuf, uint32_t size, uint32_t seq);
-#if 0	
+	
 	void BgrDataInint();
 	int BgrDataToRtsp(void *dataBuf, uint32_t size, uint32_t seq);
-#endif
+
 	int FlushEncoder();
 
 private:

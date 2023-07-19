@@ -188,7 +188,7 @@ int RtspStream::YuvDataToRtsp(void *dataBuf, uint32_t size, uint32_t seq)
     }
 	return 0;
 }
-#if 0 
+
 void RtspStream::BgrDataInint()
 {
     if (this->g_bgrToRtspFlag == false) {
@@ -250,4 +250,3 @@ int RtspStream::BgrDataToRtsp(void *dataBuf, uint32_t size, uint32_t seq)
     }
 	return 0;
 }
-#endif
