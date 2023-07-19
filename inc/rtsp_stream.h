@@ -8,7 +8,7 @@ public:
 	RtspStream();
 	~RtspStream();
 
-	int AvInit(int picWidth, int picHeight, std::string g_outFile);
+	int AvInit(int picWidth, int picHeight, std::string g_outFile,uint32_t bitRate,uint32_t gopSize, uint16_t frameRate);
 	
 	void YuvDataInit();
 	

@@ -3,10 +3,10 @@
 using namespace std;
 namespace
 {
-    const string g_avFormat = "rtsp";
-    const uint32_t g_bitRate = 900000;
-    const uint32_t g_gopSize = 12;
-    const uint16_t g_frameRate = 15;
+    // const string g_avFormat = "rtsp";
+    // const uint32_t g_bitRate = 900000;
+    // const uint32_t g_gopSize = 12;
+    // const uint16_t g_frameRate = 15;
 }
 RtspStream::RtspStream()
 {
@@ -33,14 +33,14 @@ RtspStream::~RtspStream()
     }
 }
 
-int RtspStream::AvInit(int picWidth, int picHeight, std::string g_outFile)
+int RtspStream::AvInit(int picWidth, int picHeight, std::string g_outFile,uint32_t bitRate,uint32_t gopSize, uint16_t frameRate)
 {
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58, 9, 100)
     av_register_all();
 #endif
     avformat_network_init();
 
-    if (avformat_alloc_output_context2(&g_fmtCtx, NULL, g_avFormat.c_str(), g_outFile.c_str()) < 0)
+    if (avformat_alloc_output_context2(&g_fmtCtx, NULL, "rtsp", g_outFile.c_str()) < 0)
     {
         ERROR_LOG("Cannot alloc output file context");
         return -1;
@@ -70,7 +70,7 @@ int RtspStream::AvInit(int picWidth, int picHeight, std::string g_outFile)
         return -1;
     }
 
-    g_avStream->time_base = AVRational{1, g_frameRate};
+    g_avStream->time_base = AVRational{1, frameRate};
 
     AVCodecParameters *param = g_fmtCtx->streams[g_avStream->index]->codecpar;
     param->codec_type = AVMEDIA_TYPE_VIDEO;
@@ -80,9 +80,9 @@ int RtspStream::AvInit(int picWidth, int picHeight, std::string g_outFile)
     avcodec_parameters_to_context(g_codecCtx, param);
 
     g_codecCtx->pix_fmt = AV_PIX_FMT_NV12;
-    g_codecCtx->time_base = AVRational{1, g_frameRate};
-    g_codecCtx->bit_rate = g_bitRate;
-    g_codecCtx->gop_size = g_gopSize;
+    g_codecCtx->time_base = AVRational{1, frameRate};
+    g_codecCtx->bit_rate = bitRate;
+    g_codecCtx->gop_size = gopSize;
     g_codecCtx->max_b_frames = 0;
 
     if (g_codecCtx->codec_id == AV_CODEC_ID_H264)
